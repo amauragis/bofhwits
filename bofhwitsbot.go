@@ -3,19 +3,23 @@ package main
 import (
     "github.com/thoj/go-ircevent"
     "fmt"
+
 )
 
-const nick = "bofhwits"
-const srv = "whatever.tld:6667"
+// const nick = "bofhwits"
+// const srv = "whatever.tld:6667"
 func main() {
-    con := irc.IRC(nick, nick)
-    err := con.Connect(srv)
+    
+    var configs Config = LoadConfig()
+    
+    con := irc.IRC(configs.Nick, configs.Username)
+    err := con.Connect(configs.Address)
     if err != nil {
         fmt.Println("Failed to connect")
         return
     }
     
-    var roomName = "#ryzic_dumb_junk"
+    var roomName = configs.Channel
     
     con.AddCallback("001", func (e *irc.Event) {
         con.Join(roomName)
