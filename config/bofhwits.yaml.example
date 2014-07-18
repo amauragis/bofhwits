@@ -3,3 +3,9 @@ address: whatever.tld:6667
 username: bofhwits
 nick: bofhwits
 channel: "#dumbchannel"
+
+twitter:
+    appapi: stuff
+    appsecret: things
+    accountapi: thingamajigs
+    accountsecret: doodads

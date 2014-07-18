@@ -12,6 +12,12 @@ type Config struct {
     Username string
     Nick string
     Channel string
+    Twitter struct {
+        Appapi string
+        Appsecret string
+        Accountapi string
+        Accountsecret string
+    }
 }
 
 // populate a config struct from a yaml file.
@@ -27,7 +33,7 @@ func LoadConfig(path string) Config{
     if err != nil {
         log.Fatal(err)
     }
-    
+   
     return configs
     
 //     fmt.Printf("address: %#v\n", configs.Address)
