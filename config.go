@@ -2,9 +2,9 @@ package main
 
 import (
     "gopkg.in/yaml.v1"
-//     "fmt"
     "log"
     "io/ioutil"
+    //     "fmt"
 )
 
 type Config struct {
@@ -14,10 +14,9 @@ type Config struct {
     Channel string
 }
 
-func LoadConfig() Config{
-    
-    
-    source, err := ioutil.ReadFile("config/bofhwits.yaml")
+// populate a config struct from a yaml file.
+func LoadConfig(path string) Config{    
+    source, err := ioutil.ReadFile(path)
      if err != nil {
         log.Fatal(err)
     }
