@@ -9,6 +9,6 @@ An IRC chat bot, that, among other things, will provide a quoting service to all
 Dependencies
 ------------
  - Go
- - Go ircevent (github.com/thoj/go-ircevent)
+ - Go ircevent (https://github.com/thoj/go-ircevent)
  - Go yaml (https://github.com/go-yaml/yaml)
  
