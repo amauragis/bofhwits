@@ -1,4 +1,4 @@
-package main
+package bofhwitsbot
 
 import (
     "gopkg.in/yaml.v1"

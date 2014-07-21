@@ -1,4 +1,4 @@
-package main
+package bofhwitsbot
 
 // TODO:
 // - implement commands
@@ -10,7 +10,6 @@ package main
 import (
     "github.com/thoj/go-ircevent"
     "fmt"
-    "flag"
     "strings"
     "github.com/ChimeraCoder/anaconda"
 )
@@ -19,8 +18,6 @@ var con *irc.Connection
 var roomName string
 var configs Config
 
-// setup -c flag to pass a configuration file to the bot.  I suppose if you want multiple bots, you can use multiple configuration files
-var config_file = flag.String("c", "config/bofhwits.yaml", "The path to the configuration file to use (default config/bofhwits.yaml)")
 
 func tweet(msg string) {
     anaconda.SetConsumerKey(configs.Twitter.Appapi)
@@ -54,7 +51,7 @@ func faketweet(msg string) {
 
 
 
-func HandleMessageEvent(e* irc.Event) {
+func handleMessageEvent(e* irc.Event) {
     
     // list of valid commands
 //     commandslist := [...]string{"!tweet","!buttes"}
@@ -91,13 +88,12 @@ func HandleMessageEvent(e* irc.Event) {
     
 }
 
-func main() {
+func RunBot(config_file_path *string) {
     
-    flag.Parse()
+    
     
     // populate the configuration struct from the yaml conf file 
-    configs = LoadConfig(*config_file)
-    // this could also say configs := LoadConfig(*config_file)
+    configs = LoadConfig(*config_file_path)
     
     // connect to IRC
     con = irc.IRC(configs.Nick, configs.Username)
@@ -120,7 +116,7 @@ func main() {
 //     })
     
     // get a message callback
-    con.AddCallback("PRIVMSG", HandleMessageEvent)
+    con.AddCallback("PRIVMSG", handleMessageEvent)
     
     // necessary for ircevent.  Processing loop to handle all events
     con.Loop()
