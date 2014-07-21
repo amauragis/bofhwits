@@ -2,7 +2,7 @@ package bofhwitsbot
 
 // TODO:
 // - implement commands
-//    - !twat (or whatever)
+//    - !tweet (or whatever)
 //    - ???
 // - hook to a suitable microblogging platform (probably also twitter)
 // - Write own IRC backend, libraries are for chumps
@@ -12,75 +12,122 @@ import (
     "fmt"
     "strings"
     "github.com/ChimeraCoder/anaconda"
+    "log"
+    "gopkg.in/yaml.v1"
+    "io/ioutil"
 )
 
-var con *irc.Connection
-var roomName string
-var configs Config
+// struct to contain configuration data as parsed from yaml
+type BofhwitsConfig struct {
+    Address string
+    Username string
+    Nick string
+    Channel string
+    Twitter struct {
+        AppApi string
+        AppSecret string
+        AccountApi string
+        AccountSecret string
+    }
+}
+
+type BofhwitsBot struct {
+
+    con             *irc.Connection
+    Configs         *BofhwitsConfig
+
+    ConfigFilePath  string
+    Log             *log.Logger
+}
 
 
-func tweet(msg string) {
-    anaconda.SetConsumerKey(configs.Twitter.Appapi)
-    anaconda.SetConsumerSecret(configs.Twitter.Appsecret)
-    api := anaconda.NewTwitterApi(configs.Twitter.Accountapi, configs.Twitter.Accountsecret)
+// populate a config struct from a yaml file.
+func (bot BofhwitsBot) LoadConfig() {
+
+    source, err := ioutil.ReadFile(bot.ConfigFilePath)
+     if err != nil {
+        log.Fatal(err)
+    }
+    
+    var configs BofhwitsConfig
+
+    // literal wizard magic
+    err = yaml.Unmarshal(source, &configs)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    bot.Configs = &configs
+    fmt.Printf("Configing with Configs:\n%v\n",bot.Configs)
+}
+
+
+func (bot BofhwitsBot) tweet(msg string) {
+    anaconda.SetConsumerKey(bot.Configs.Twitter.AppApi)
+    anaconda.SetConsumerSecret(bot.Configs.Twitter.AppSecret)
+    api := anaconda.NewTwitterApi(bot.Configs.Twitter.AccountApi, bot.Configs.Twitter.AccountSecret)
     _ , err := api.PostTweet(msg, nil)
     if err != nil{
         fmt.Println(err)
-        con.Privmsg(roomName, "Could not tweet for some reason...")
+        bot.con.Privmsg(bot.Configs.Channel, "Could not tweet for some reason...")
     } else {
         
-       con.Privmsg(roomName, "OK! Tweeted: " + msg)
+       bot.con.Privmsg(bot.Configs.Channel, "OK! Tweeted: " + msg)
     }
 }
 
-func faketweet(msg string) {
-    anaconda.SetConsumerKey(configs.Twitter.Appapi)
-    anaconda.SetConsumerSecret(configs.Twitter.Appsecret)
-    api := anaconda.NewTwitterApi(configs.Twitter.Accountapi, configs.Twitter.Accountsecret)
-    ok, err := api.VerifyCredentials()
+func (bot BofhwitsBot) faketweet(msg string) {
+    anaconda.SetConsumerKey(bot.Configs.Twitter.AppApi)
+    anaconda.SetConsumerSecret(bot.Configs.Twitter.AppSecret)
+    api := anaconda.NewTwitterApi(bot.Configs.Twitter.AccountApi, bot.Configs.Twitter.AccountSecret)
+    _, err := api.VerifyCredentials()
     
     if err != nil{
         fmt.Println(err)
-
     
     } else {
-        fmt.Printf("Success: %#v \n", ok)    
-        con.Privmsg(roomName, "Would have tweeted: " + msg)
+        bot.con.Privmsg(bot.Configs.Channel, "Would have tweeted: " + msg)
     }
 }
 
 
 
-func handleMessageEvent(e* irc.Event) {
+func (bot BofhwitsBot) handleMessageEvent(e* irc.Event) {
     
     // list of valid commands
-//     commandslist := [...]string{"!tweet","!buttes"}
     msg := e.Message()
     
     // tokenize the read string, splitting it off after the first space
     token_msg := strings.SplitN(msg, " ", 2)
     cmd := token_msg[0]
     var params string
+
+    // if we only have 1 msg, we failed to split it into two words,
+    // so set params to an empty string.  We also want to trim any junk
+    // space off of the params string
     if len(token_msg) > 1 {
         params = token_msg[1]
         params = strings.TrimSpace(params)
     } else{
         params = ""
     }
+
     // if the first letter is !, it's a real command
     if cmd[0] == '!'{
         
+        // command definitions.  For readability, they are broken into
+        // helper functions
         switch cmd {
             case "!tweet":
             if params != "" {
-                tweet(e.Nick +": " + params)
+                bot.tweet(e.Nick +": " + params)
             }
             case "!tweettest":
             if params != "" {
-                faketweet(e.Nick +": " + params)
+                bot.faketweet(e.Nick +": " + params)
             }
             case "!buttes":
-                con.Privmsg(roomName, "Donges.")
+                bot.con.Privmsg(bot.Configs.Channel, "Donges.")
             default:
             
         }
@@ -88,26 +135,21 @@ func handleMessageEvent(e* irc.Event) {
     
 }
 
-func RunBot(config_file_path *string) {
+// main entry point function for starting the bot.
+func (bot BofhwitsBot) RunBot() {  
     
-    
-    
-    // populate the configuration struct from the yaml conf file 
-    configs = LoadConfig(*config_file_path)
-    
+    fmt.Printf("Running with Configs:\n%v\n",bot.Configs)
     // connect to IRC
-    con = irc.IRC(configs.Nick, configs.Username)
-    err := con.Connect(configs.Address)
+    bot.con = irc.IRC(bot.Configs.Nick, bot.Configs.Username)
+    err := bot.con.Connect(bot.Configs.Address)
     if err != nil {
         fmt.Println("Failed to connect")
         return
     }
     
-    roomName = configs.Channel
-    
     // Connected to server callback
-    con.AddCallback("001", func (e *irc.Event) {
-        con.Join(roomName)
+    bot.con.AddCallback("001", func (e *irc.Event) {
+        bot.con.Join(bot.Configs.Channel)
     })
     
     // Join a channel callback
@@ -116,8 +158,8 @@ func RunBot(config_file_path *string) {
 //     })
     
     // get a message callback
-    con.AddCallback("PRIVMSG", handleMessageEvent)
+    bot.con.AddCallback("PRIVMSG", bot.handleMessageEvent)
     
     // necessary for ircevent.  Processing loop to handle all events
-    con.Loop()
+    bot.con.Loop()
 }
