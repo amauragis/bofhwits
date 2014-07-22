@@ -17,52 +17,48 @@ import (
     "io/ioutil"
 )
 
-// struct to contain configuration data as parsed from yaml
-type BofhwitsConfig struct {
-    Address string
-    Username string
-    Nick string
-    Channel string
-    Twitter struct {
-        AppApi string
-        AppSecret string
-        AccountApi string
-        AccountSecret string
-    }
-}
-
+// holds connection pointer, config file path, and contents of config
+// populated via yaml
 type BofhwitsBot struct {
 
-    con             *irc.Connection
-    Configs         *BofhwitsConfig
+    con *irc.Connection    
 
-    ConfigFilePath  string
-    Log             *log.Logger
+    Configs struct {
+        Address string
+        Username string
+        Nick string
+        Channel string
+        Twitter struct {
+            AppApi string
+            AppSecret string
+            AccountApi string
+            AccountSecret string
+        }
+    }
+    ConfigFilePath string
+    Log *log.Logger
 }
 
 
 // populate a config struct from a yaml file.
-func (bot BofhwitsBot) LoadConfig() {
+func (bot *BofhwitsBot) LoadConfig() {
 
     source, err := ioutil.ReadFile(bot.ConfigFilePath)
      if err != nil {
         log.Fatal(err)
     }
     
-    var configs BofhwitsConfig
-
     // literal wizard magic
-    err = yaml.Unmarshal(source, &configs)
+    err = yaml.Unmarshal(source, &(bot.Configs))
     if err != nil {
         log.Fatal(err)
     }
 
-    bot.Configs = &configs
-    fmt.Printf("Configing with Configs:\n%v\n",bot.Configs)
 }
 
 
-func (bot BofhwitsBot) tweet(msg string) {
+func (bot *BofhwitsBot) tweet(msg string) {
+
     anaconda.SetConsumerKey(bot.Configs.Twitter.AppApi)
     anaconda.SetConsumerSecret(bot.Configs.Twitter.AppSecret)
     api := anaconda.NewTwitterApi(bot.Configs.Twitter.AccountApi, bot.Configs.Twitter.AccountSecret)
@@ -74,9 +70,11 @@ func (bot BofhwitsBot) tweet(msg string) {
         
        bot.con.Privmsg(bot.Configs.Channel, "OK! Tweeted: " + msg)
     }
+
 }
 
-func (bot BofhwitsBot) faketweet(msg string) {
+func (bot *BofhwitsBot) faketweet(msg string) {
+
     anaconda.SetConsumerKey(bot.Configs.Twitter.AppApi)
     anaconda.SetConsumerSecret(bot.Configs.Twitter.AppSecret)
     api := anaconda.NewTwitterApi(bot.Configs.Twitter.AccountApi, bot.Configs.Twitter.AccountSecret)
@@ -88,12 +86,14 @@ func (bot BofhwitsBot) faketweet(msg string) {
     } else {
         bot.con.Privmsg(bot.Configs.Channel, "Would have tweeted: " + msg)
     }
+
 }
 
 
 
-func (bot BofhwitsBot) handleMessageEvent(e* irc.Event) {
-    
+func (bot *BofhwitsBot) handleMessageEvent(e* irc.Event) {
+
+
     // list of valid commands
     msg := e.Message()
     
@@ -132,13 +132,12 @@ func (bot BofhwitsBot) handleMessageEvent(e* irc.Event) {
             
         }
     }   
-    
+
 }
 
 // main entry point function for starting the bot.
-func (bot BofhwitsBot) RunBot() {  
-    
-    fmt.Printf("Running with Configs:\n%v\n",bot.Configs)
+func (bot *BofhwitsBot) RunBot() {  
+    // fmt.Printf("Running with Configs:\n%v\n",bot.Configs)
     // connect to IRC
     bot.con = irc.IRC(bot.Configs.Nick, bot.Configs.Username)
     err := bot.con.Connect(bot.Configs.Address)

@@ -14,12 +14,10 @@ func main() {
 
 	flag.Parse()
 
-	var bot bofhwitsbot.BofhwitsBot
+	bot := bofhwitsbot.BofhwitsBot{ConfigFilePath:*config_file}
 
-	bot.ConfigFilePath = *config_file
-	fmt.Printf("before config:\n%v\n",bot)
 	bot.LoadConfig()
-	fmt.Printf("after config:\n%v\n",bot)
+
 	bot.RunBot()
 
 }
