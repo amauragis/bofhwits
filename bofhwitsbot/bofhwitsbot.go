@@ -8,12 +8,13 @@ package bofhwitsbot
 // - Write own IRC backend, libraries are for chumps
 
 import (
-	"fmt"
+	// "fmt"
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/thoj/go-ircevent"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -39,6 +40,7 @@ type BofhwitsBot struct {
 }
 
 // populate a config struct from a yaml file.
+// errors here are fatal and will exit
 func (bot *BofhwitsBot) LoadConfig() {
 
 	source, err := ioutil.ReadFile(bot.ConfigFilePath)
@@ -61,11 +63,12 @@ func (bot *BofhwitsBot) tweet(msg string) {
 	api := anaconda.NewTwitterApi(bot.Configs.Twitter.AccountApi, bot.Configs.Twitter.AccountSecret)
 	_, err := api.PostTweet(msg, nil)
 	if err != nil {
-		fmt.Println(err)
 		bot.con.Privmsg(bot.Configs.Channel, "Could not tweet for some reason...")
+		bot.Log.Printf("Tweet Failure: %v\n", err)
 	} else {
 
 		bot.con.Privmsg(bot.Configs.Channel, "OK! Tweeted: "+msg)
+		bot.Log.Println("Tweet Success: " + msg)
 	}
 
 }
@@ -78,10 +81,11 @@ func (bot *BofhwitsBot) faketweet(msg string) {
 	_, err := api.VerifyCredentials()
 
 	if err != nil {
-		fmt.Println(err)
+		bot.Log.Printf("Fake Tweet Failure: %v\n", err)
 
 	} else {
 		bot.con.Privmsg(bot.Configs.Channel, "Would have tweeted: "+msg)
+		bot.Log.Println("Fake Tweet Success: " + msg)
 	}
 
 }
@@ -122,6 +126,7 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 			}
 		case "!buttes":
 			bot.con.Privmsg(bot.Configs.Channel, "Donges.")
+			bot.Log.Println("Donged.")
 		default:
 
 		}
@@ -131,14 +136,19 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 
 // main entry point function for starting the bot.
 func (bot *BofhwitsBot) RunBot() {
-	// fmt.Printf("Running with Configs:\n%v\n",bot.Configs)
+
+	if bot.Log == nil {
+		bot.Log = log.New(os.Stdout, "BOFH: ", log.Ldate|log.Ltime)
+	}
 	// connect to IRC
 	bot.con = irc.IRC(bot.Configs.Nick, bot.Configs.Username)
 	err := bot.con.Connect(bot.Configs.Address)
 	if err != nil {
-		fmt.Println("Failed to connect")
+		bot.Log.Println("Failed to connect to " + bot.Configs.Address)
 		return
 	}
+
+	bot.Log.Println("Connected to " + bot.Configs.Address)
 
 	// Connected to server callback
 	bot.con.AddCallback("001", func(e *irc.Event) {
