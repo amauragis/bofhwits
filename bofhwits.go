@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/amauragis/bofhwits/bofhwitsbot"
+	"log"
 )
 
 // setup -c flag to pass a configuration file to the bot.  I suppose if you want multiple bots, you can use multiple configuration files
@@ -13,7 +14,10 @@ func main() {
 	flag.Parse()
 
 	bot := bofhwitsbot.BofhwitsBot{ConfigFilePath: *config_file}
-	bot.LoadConfig()
+	err := bot.LoadConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 	bot.RunBot()
 
 }

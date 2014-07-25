@@ -1,12 +1,5 @@
 package bofhwitsbot
 
-// TODO:
-// - implement commands
-//    - !tweet (or whatever)
-//    - ???
-// - hook to a suitable microblogging platform (probably also twitter)
-// - Write own IRC backend, libraries are for chumps
-
 import (
 	// "fmt"
 	"github.com/ChimeraCoder/anaconda"
@@ -40,19 +33,22 @@ type BofhwitsBot struct {
 }
 
 // populate a config struct from a yaml file.
-// errors here are fatal and will exit
-func (bot *BofhwitsBot) LoadConfig() {
+func (bot *BofhwitsBot) LoadConfig() error {
 
 	source, err := ioutil.ReadFile(bot.ConfigFilePath)
 	if err != nil {
-		log.Fatal(err)
+		bot.Log.Printf("Read file failure: %v\n", err)
+		return err
 	}
 
 	// literal wizard magic
 	err = yaml.Unmarshal(source, &(bot.Configs))
 	if err != nil {
-		log.Fatal(err)
+		bot.Log.Printf("Unmarshal YAML failure: %v\n", err)
+		return err
 	}
+
+	return nil
 
 }
 
@@ -128,7 +124,7 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 			bot.con.Privmsg(bot.Configs.Channel, "Donges.")
 			bot.Log.Println("Donged.")
 		default:
-
+			// no match, pretend nothing happened
 		}
 	}
 
@@ -150,19 +146,14 @@ func (bot *BofhwitsBot) RunBot() {
 
 	bot.Log.Println("Connected to " + bot.Configs.Address)
 
-	// Connected to server callback
+	// Join our specified channel when we connect
 	bot.con.AddCallback("001", func(e *irc.Event) {
 		bot.con.Join(bot.Configs.Channel)
 	})
 
-	// Join a channel callback
-	//     con.AddCallback("JOIN", func (e *irc.Event) {
-	//         con.Privmsg(roomName, "Hello!")
-	//     })
-
 	// get a message callback
 	bot.con.AddCallback("PRIVMSG", bot.handleMessageEvent)
 
-	// necessary for ircevent.  Processing loop to handle all events
+	// Processing loop to handle all events
 	bot.con.Loop()
 }
