@@ -2,7 +2,9 @@ package bofhwitsbot
 
 import (
 	// "fmt"
+	"database/sql"
 	"github.com/ChimeraCoder/anaconda"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/thoj/go-ircevent"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
@@ -27,6 +29,12 @@ type BofhwitsBot struct {
 			AccountApi    string
 			AccountSecret string
 		}
+		Mysql struct {
+			Host string
+			DB   string
+			User string
+			Pass string
+		}
 	}
 	ConfigFilePath string
 	Log            *log.Logger
@@ -50,6 +58,23 @@ func (bot *BofhwitsBot) LoadConfig() error {
 
 	return nil
 
+}
+
+// format the string (probably a tweet request) for a single line
+func formatTextOneLine(s string) string {
+	return strings.Replace(s, "\n", " | ", -1)
+}
+
+// format the string (log request for site) preserving line endings
+func formatTextMultiLine(s string) string {
+	return s
+}
+
+func (bot *BofhwitsBot) postSql(user string, msg string) {
+	con, err := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@"+bot.Configs.Mysql.Host+"/"+bot.Configs.Mysql.DB)
+	defer con.Close()
+
+	_, err = con.Exec("INSERT INTO bofhwits_posts (user, post) VALUES (?, ?)", user, msg)
 }
 
 func (bot *BofhwitsBot) tweet(msg string) {

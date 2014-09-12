@@ -9,3 +9,9 @@ twitter:
     appsecret: things
     accountapi: thingamajigs
     accountsecret: doodads
+
+mysql:
+	host: junk.com
+	db: lol
+	user: buttes
+	pass: donges
