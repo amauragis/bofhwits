@@ -110,22 +110,15 @@ func (bot *BofhwitsBot) dbInit() {
 	}
 	defer sqlcon.Close()
 
-	_, execErr := 
-	sqlcon.Exec("CREATE TABLE IF NOT EXISTS bofhwits_posts 
-		(
-			post_id int PRIMARY KEY AUTO_INCREMENT,
-			user VARCHAR(50),
-			post VARCHAR(1000),
-			requestor VARCHAR(50),
-			ts TIMESTAMP
-		);")
+	_, execErr :=
+		sqlcon.Exec("CREATE TABLE IF NOT EXISTS bofhwits_posts ( post_id int PRIMARY KEY AUTO_INCREMENT, user VARCHAR(50), post VARCHAR(1000), requestor VARCHAR(50), ts TIMESTAMP);")
 
 	if execErr != nil {
-		bot.Log("Failed to init database: %v\n", execErr)
+		bot.Log.Printf("Failed to init database: %v\n", execErr)
 	}
 }
 
-func (bot *BofhwitsBot) postSql(user string, msg string) {
+func (bot *BofhwitsBot) postSql(user string, msg string, requestor string) {
 	sqlcon, oerr := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@tcp("+bot.Configs.Mysql.Host+":3306)/"+bot.Configs.Mysql.DB)
 	if oerr != nil {
 		bot.con.Privmsg(bot.Configs.Channel, "Could not connect db for some reason...")
@@ -133,10 +126,10 @@ func (bot *BofhwitsBot) postSql(user string, msg string) {
 	}
 	defer sqlcon.Close()
 
-	bot.Log.Printf("DB: INSERT INTO bofhwits_posts (user, post) VALUES (%s, %s)", user, msg)
+	bot.Log.Printf("DB: INSERT INTO bofhwits_posts (user, post, requestor) VALUES (%s, %s, %s)", user, msg, requestor)
 
-	stmt, err := sqlcon.Prepare("INSERT INTO bofhwits_posts (user, post) VALUES (?, ?)")
-	stmt.Exec(user, msg)
+	stmt, err := sqlcon.Prepare("INSERT INTO bofhwits_posts (user, post, requestor) VALUES (?, ?, ?)")
+	stmt.Exec(user, msg, requestor)
 
 	if err != nil {
 		bot.con.Privmsg(bot.Configs.Channel, "Could not db for some reason...")
@@ -204,27 +197,45 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 		// command definitions.  For readability, they are broken into
 		// helper functions
 		switch cmd {
-		case "!tweet":
-			if params != "" {
-				bot.tweet(e.Nick + ": " + params)
-			}
-		case "!tweettest":
-			if params != "" {
-				bot.faketweet(e.Nick + ": " + params)
-			}
+		// case "!tweet":
+		// 	if params != "" {
+		// 		bot.tweet(e.Nick + ": " + params)
+		// 	}
+		// case "!tweettest":
+		// 	if params != "" {
+		// 		bot.faketweet(e.Nick + ": " + params)
+		// 	}
 		case "!buttes":
 			bot.con.Privmsg(bot.Configs.Channel, "Donges.")
-			bot.Log.Println("Donged.")
+			bot.Log.Println("Donged " + e.Nick)
 
-		case "!dbtest":
-			bot.postSql("ryzic", "test")
+		// case "!dbtest":
+		// 	bot.postSql("ryzic", "test")
 
-		case "!unparse":
-			if params != "" {
+		// case "!unparse":
+		// 	if params != "" {
+		// 		user, msg := separateUsername(params)
+		// 		bot.con.Privmsg(bot.Configs.Channel, "Nick: "+user)
+		// 		bot.con.Privmsg(bot.Configs.Channel, "Msg: "+msg)
+
+		// 	}
+
+		case "!info":
+			bot.Log.Println("Info requested by " + e.Nick)
+			bot.con.Privmsg(bot.Configs.Channel, "bofhwits created by ryzic and comradephate")
+			bot.con.Privmsg(bot.Configs.Channel, "feed: https://bofh.wtf/")
+			bot.con.Privmsg(bot.Configs.Channel, "twitter: https://twitter.com/bofhwits")
+		case "!bofh":
+			if params == "" {
+				bot.con.Privmsg(bot.Configs.Channel, "Usage: !bofh <message>")
+			} else {
+				bot.Log.Println("BOFH requested by " + e.Nick)
+				bot.Log.Println("Msg " + params)
+				requestor := e.Nick
 				user, msg := separateUsername(params)
-				bot.con.Privmsg(bot.Configs.Channel, "Nick: "+user)
-				bot.con.Privmsg(bot.Configs.Channel, "Msg: "+msg)
-
+				bot.postSql(user, msg, requestor)
+				bot.tweet(params + " BOFH'd by " + requestor)
+				bot.con.Privmsg(bot.Configs.Channel, "Okay, "+e.Nick+", I posted your shitpost.")
 			}
 		default:
 			// no match, pretend nothing happened
@@ -249,10 +260,17 @@ func (bot *BofhwitsBot) RunBot() {
 
 	bot.Log.Println("Connected to " + bot.Configs.Address)
 
+	// bot.dbInit()
+
 	// Join our specified channel when we connect
 	bot.con.AddCallback("001", func(e *irc.Event) {
 		bot.con.Join(bot.Configs.Channel)
 	})
+
+	// // If we get kicked, assume it was for a good reason
+	// bot.con.AddCallback("KICK", func(e *irc.Event) {
+	// 	bot.Log.Fatal("Kicked!")
+	// })
 
 	// get a message callback
 	bot.con.AddCallback("PRIVMSG", bot.handleMessageEvent)
