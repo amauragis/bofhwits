@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+// tests don't work.  sorry
+
 var bot BofhwitsBot
 var api *anaconda.TwitterApi
 

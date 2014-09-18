@@ -73,24 +73,56 @@ func formatTextMultiLine(s string) string {
 
 func separateUsername(s string) (user string, msg string) {
 
-	// handle single ended delimiters
-	delims := []rune{'|', '>', ':', ','}
-	var matchRune rune
-	for _, elem := range delims {
+	// search for a < and > pair and take everything between them
+	if strings.ContainsRune(s, '<') {
+		userStart := strings.IndexRune(s, '<') + 1
+		userEnd := strings.IndexRune(s, '>')
 
-		if strings.ContainsRune(s, elem) {
-			matchRune = elem
+		user = strings.TrimSpace(s[userStart:userEnd])
+		msg = strings.TrimSpace(s[userEnd+1:])
+
+	} else {
+		// handle single ended delimiters
+		delims := []rune{'>', ':', ','}
+		var matchRune rune
+		for _, elem := range delims {
+
+			if strings.ContainsRune(s, elem) {
+				matchRune = elem
+			}
 		}
+
+		quotedRuneStr := strconv.QuoteRuneToASCII(matchRune)
+		runeStr := quotedRuneStr[1 : len(quotedRuneStr)-1]
+		splitstr := strings.Split(s, runeStr)
+
+		user = strings.TrimSpace(splitstr[0])
+		msg = strings.TrimSpace(splitstr[1])
 	}
 
-	quotedRuneStr := strconv.QuoteRuneToASCII(matchRune)
-	runeStr := quotedRuneStr[1 : len(quotedRuneStr)-1]
-	splitstr := strings.Split(s, runeStr)
-
-	user = strings.TrimSpace(splitstr[0])
-	msg = strings.TrimSpace(splitstr[1])
 	return
+}
 
+func (bot *BofhwitsBot) dbInit() {
+	sqlcon, oerr := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@tcp("+bot.Configs.Mysql.Host+":3306)/"+bot.Configs.Mysql.DB)
+	if oerr != nil {
+		bot.Log.Printf("DB Failure: %v\n", oerr)
+	}
+	defer sqlcon.Close()
+
+	_, execErr := 
+	sqlcon.Exec("CREATE TABLE IF NOT EXISTS bofhwits_posts 
+		(
+			post_id int PRIMARY KEY AUTO_INCREMENT,
+			user VARCHAR(50),
+			post VARCHAR(1000),
+			requestor VARCHAR(50),
+			ts TIMESTAMP
+		);")
+
+	if execErr != nil {
+		bot.Log("Failed to init database: %v\n", execErr)
+	}
 }
 
 func (bot *BofhwitsBot) postSql(user string, msg string) {
@@ -123,7 +155,7 @@ func (bot *BofhwitsBot) tweet(msg string) {
 		bot.Log.Printf("Tweet Failure: %v\n", err)
 	} else {
 
-		bot.con.Privmsg(bot.Configs.Channel, "OK! Tweeted: "+msg)
+		// bot.con.Privmsg(bot.Configs.Channel, "OK! Tweeted: "+msg)
 		bot.Log.Println("Tweet Success: " + msg)
 	}
 
