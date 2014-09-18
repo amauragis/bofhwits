@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -70,11 +71,45 @@ func formatTextMultiLine(s string) string {
 	return s
 }
 
-func (bot *BofhwitsBot) postSql(user string, msg string) {
-	con, err := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@"+bot.Configs.Mysql.Host+"/"+bot.Configs.Mysql.DB)
-	defer con.Close()
+func separateUsername(s string) (user string, msg string) {
 
-	_, err = con.Exec("INSERT INTO bofhwits_posts (user, post) VALUES (?, ?)", user, msg)
+	// handle single ended delimiters
+	delims := []rune{'|', '>', ':', ','}
+	var matchRune rune
+	for _, elem := range delims {
+
+		if strings.ContainsRune(s, elem) {
+			matchRune = elem
+		}
+	}
+
+	quotedRuneStr := strconv.QuoteRuneToASCII(matchRune)
+	runeStr := quotedRuneStr[1 : len(quotedRuneStr)-1]
+	splitstr := strings.Split(s, runeStr)
+
+	user = strings.TrimSpace(splitstr[0])
+	msg = strings.TrimSpace(splitstr[1])
+	return
+
+}
+
+func (bot *BofhwitsBot) postSql(user string, msg string) {
+	sqlcon, oerr := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@tcp("+bot.Configs.Mysql.Host+":3306)/"+bot.Configs.Mysql.DB)
+	if oerr != nil {
+		bot.con.Privmsg(bot.Configs.Channel, "Could not connect db for some reason...")
+		bot.Log.Printf("DB Failure: %v\n", oerr)
+	}
+	defer sqlcon.Close()
+
+	bot.Log.Printf("DB: INSERT INTO bofhwits_posts (user, post) VALUES (%s, %s)", user, msg)
+
+	stmt, err := sqlcon.Prepare("INSERT INTO bofhwits_posts (user, post) VALUES (?, ?)")
+	stmt.Exec(user, msg)
+
+	if err != nil {
+		bot.con.Privmsg(bot.Configs.Channel, "Could not db for some reason...")
+		bot.Log.Printf("DB Failure: %v\n", err)
+	}
 }
 
 func (bot *BofhwitsBot) tweet(msg string) {
@@ -113,7 +148,7 @@ func (bot *BofhwitsBot) faketweet(msg string) {
 
 func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 
-	// list of valid commands
+	// list of valid commandssplit
 	msg := e.Message()
 
 	// tokenize the read string, splitting it off after the first space
@@ -148,6 +183,17 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 		case "!buttes":
 			bot.con.Privmsg(bot.Configs.Channel, "Donges.")
 			bot.Log.Println("Donged.")
+
+		case "!dbtest":
+			bot.postSql("ryzic", "test")
+
+		case "!unparse":
+			if params != "" {
+				user, msg := separateUsername(params)
+				bot.con.Privmsg(bot.Configs.Channel, "Nick: "+user)
+				bot.con.Privmsg(bot.Configs.Channel, "Msg: "+msg)
+
+			}
 		default:
 			// no match, pretend nothing happened
 		}
