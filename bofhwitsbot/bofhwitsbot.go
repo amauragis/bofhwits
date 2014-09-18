@@ -173,12 +173,12 @@ func (bot *BofhwitsBot) faketweet(msg string) {
 
 func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 
-	// list of valid commandssplit
-	msg := e.Message()
+	msg := strings.TrimSpace(e.Message())
 
 	// tokenize the read string, splitting it off after the first space
 	token_msg := strings.SplitN(msg, " ", 2)
-	cmd := token_msg[0]
+
+	cmd := strings.TrimSpace(token_msg[0])
 	var params string
 
 	// if we only have 1 msg, we failed to split it into two words,
@@ -191,54 +191,56 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 		params = ""
 	}
 
-	// if the first letter is !, it's a real command
-	if cmd[0] == '!' {
+	if len(cmd) > 1 {
+		// if the first letter is !, it's a real command
+		if cmd[0] == '!' {
 
-		// command definitions.  For readability, they are broken into
-		// helper functions
-		switch cmd {
-		// case "!tweet":
-		// 	if params != "" {
-		// 		bot.tweet(e.Nick + ": " + params)
-		// 	}
-		// case "!tweettest":
-		// 	if params != "" {
-		// 		bot.faketweet(e.Nick + ": " + params)
-		// 	}
-		case "!buttes":
-			bot.con.Privmsg(bot.Configs.Channel, "Donges.")
-			bot.Log.Println("Donged " + e.Nick)
+			// command definitions.  For readability, they are broken into
+			// helper functions
+			switch cmd {
+			// case "!tweet":
+			// 	if params != "" {
+			// 		bot.tweet(e.Nick + ": " + params)
+			// 	}
+			// case "!tweettest":
+			// 	if params != "" {
+			// 		bot.faketweet(e.Nick + ": " + params)
+			// 	}
+			case "!buttes":
+				bot.con.Privmsg(bot.Configs.Channel, "Donges.")
+				bot.Log.Println("Donged " + e.Nick)
 
-		// case "!dbtest":
-		// 	bot.postSql("ryzic", "test")
+			// case "!dbtest":
+			// 	bot.postSql("ryzic", "test")
 
-		// case "!unparse":
-		// 	if params != "" {
-		// 		user, msg := separateUsername(params)
-		// 		bot.con.Privmsg(bot.Configs.Channel, "Nick: "+user)
-		// 		bot.con.Privmsg(bot.Configs.Channel, "Msg: "+msg)
+			// case "!unparse":
+			// 	if params != "" {
+			// 		user, msg := separateUsername(params)
+			// 		bot.con.Privmsg(bot.Configs.Channel, "Nick: "+user)
+			// 		bot.con.Privmsg(bot.Configs.Channel, "Msg: "+msg)
 
-		// 	}
+			// 	}
 
-		case "!info":
-			bot.Log.Println("Info requested by " + e.Nick)
-			bot.con.Privmsg(bot.Configs.Channel, "bofhwits created by ryzic and comradephate")
-			bot.con.Privmsg(bot.Configs.Channel, "feed: https://bofh.wtf/")
-			bot.con.Privmsg(bot.Configs.Channel, "twitter: https://twitter.com/bofhwits")
-		case "!bofh":
-			if params == "" {
-				bot.con.Privmsg(bot.Configs.Channel, "Usage: !bofh <message>")
-			} else {
-				bot.Log.Println("BOFH requested by " + e.Nick)
-				bot.Log.Println("Msg " + params)
-				requestor := e.Nick
-				user, msg := separateUsername(params)
-				bot.postSql(user, msg, requestor)
-				bot.tweet(params + " BOFH'd by " + requestor)
-				bot.con.Privmsg(bot.Configs.Channel, "Okay, "+e.Nick+", I posted your shitpost.")
+			case "!info":
+				bot.Log.Println("Info requested by " + e.Nick)
+				bot.con.Privmsg(bot.Configs.Channel, "bofhwits created by ryzic and comradephate")
+				bot.con.Privmsg(bot.Configs.Channel, "feed: https://bofh.wtf/")
+				bot.con.Privmsg(bot.Configs.Channel, "twitter: https://twitter.com/bofhwits")
+			case "!bofh":
+				if params == "" {
+					bot.con.Privmsg(bot.Configs.Channel, "Usage: !bofh <message>")
+				} else {
+					bot.Log.Println("BOFH requested by " + e.Nick)
+					bot.Log.Println("Msg " + params)
+					requestor := e.Nick
+					user, msg := separateUsername(params)
+					bot.postSql(user, msg, requestor)
+					bot.tweet(params + " BOFH'd by " + requestor)
+					bot.con.Privmsg(bot.Configs.Channel, "Okay, "+e.Nick+", I posted your shitpost.")
+				}
+			default:
+				// no match, pretend nothing happened
 			}
-		default:
-			// no match, pretend nothing happened
 		}
 	}
 
@@ -267,10 +269,10 @@ func (bot *BofhwitsBot) RunBot() {
 		bot.con.Join(bot.Configs.Channel)
 	})
 
-	// // If we get kicked, assume it was for a good reason
-	// bot.con.AddCallback("KICK", func(e *irc.Event) {
-	// 	bot.Log.Fatal("Kicked!")
-	// })
+	// If we get kicked, assume it was for a good reason
+	bot.con.AddCallback("KICK", func(e *irc.Event) {
+		bot.Log.Fatal("Kicked!")
+	})
 
 	// get a message callback
 	bot.con.AddCallback("PRIVMSG", bot.handleMessageEvent)
