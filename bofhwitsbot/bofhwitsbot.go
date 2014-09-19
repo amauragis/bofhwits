@@ -223,10 +223,7 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 
 			case "!info":
 				bot.Log.Println("Info requested by " + e.Nick)
-				bot.con.Privmsg(bot.Configs.Channel, "bofhwits created by ryzic and comradephate")
-				bot.con.Privmsg(bot.Configs.Channel, "feed: https://bofh.wtf/")
-				bot.con.Privmsg(bot.Configs.Channel, "twitter: https://twitter.com/bofhwits")
-				bot.con.Privmsg(bot.Configs.Channel, "use !bofhwitsdie to kill")
+				bot.con.Privmsg(bot.Configs.Channel, "bofhwits created by ryzic and comradephate // feed: https://bofh.wtf // twitter: https://twitter.com/bofhwits // use !bofhwitsdie to kill")
 			case "!bofh":
 				if params == "" {
 					bot.con.Privmsg(bot.Configs.Channel, "Usage: !bofh <message>")
