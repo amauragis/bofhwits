@@ -226,6 +226,7 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 				bot.con.Privmsg(bot.Configs.Channel, "bofhwits created by ryzic and comradephate")
 				bot.con.Privmsg(bot.Configs.Channel, "feed: https://bofh.wtf/")
 				bot.con.Privmsg(bot.Configs.Channel, "twitter: https://twitter.com/bofhwits")
+				bot.con.Privmsg(bot.Configs.Channel, "use !bofhwitsdie to kill")
 			case "!bofh":
 				if params == "" {
 					bot.con.Privmsg(bot.Configs.Channel, "Usage: !bofh <message>")
@@ -238,6 +239,9 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 					bot.tweet(params + " BOFH'd by " + requestor)
 					bot.con.Privmsg(bot.Configs.Channel, "Okay, "+e.Nick+", I posted your shitpost.")
 				}
+			case "!bofhwitsdie":
+				log.Fatal("Killed by " + e.Nick)
+
 			default:
 				// no match, pretend nothing happened
 			}
@@ -269,10 +273,10 @@ func (bot *BofhwitsBot) RunBot() {
 		bot.con.Join(bot.Configs.Channel)
 	})
 
-	// If we get kicked, assume it was for a good reason
-	bot.con.AddCallback("KICK", func(e *irc.Event) {
-		bot.Log.Fatal("Kicked!")
-	})
+	// // If we get kicked, assume it was for a good reason
+	// bot.con.AddCallback("KICK", func(e *irc.Event) {
+	// 	bot.Log.Fatal("Kicked!")
+	// })
 
 	// get a message callback
 	bot.con.AddCallback("PRIVMSG", bot.handleMessageEvent)
