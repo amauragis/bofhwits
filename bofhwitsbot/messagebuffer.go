@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/ring"
 	"fmt"
 )
 
@@ -15,40 +16,38 @@ type Event struct {
 	Arguments []string
 }
 
-type RingBuffer struct {
-	inputChannel  <-chan Event
-	outputChannel chan Event
+var eventRing *ring.Ring
+
+func InitRing(size int) {
+	eventRing = ring.New(size)
 }
 
-func NewRingBuffer(inputChannel <-chan Event, outputChannel chan Event) *RingBuffer {
-	return &RingBuffer{inputChannel, outputChannel}
+func addEvent(newEvent Event) {
+	// move backward in the ring so we're at the oldest entry
+	eventRing = eventRing.Prev()
+	eventRing.Value = newEvent
 }
 
-func (r *RingBuffer) Run() {
-	for v := range r.inputChannel {
-		select {
-		case r.outputChannel <- v:
-		default:
-			<-r.outputChannel
-			r.outputChannel <- v
+func getHistory() []Event {
+	var history []Event
+	history = []Event{}
+	eventRing.Do(func(x interface{}) {
+		if x != nil {
+			history = append(history, x.(Event))
 		}
-	}
-	close(r.outputChannel)
+	})
+
+	return history
 }
 
 func main() {
-	in := make(chan Event)
-	out := make(chan Event, 5)
-	rb := NewRingBuffer(in, out)
-	go rb.Run()
-
-	for i := 0; i < 10; i++ {
-		in <- Event{"code", "raw" + fmt.Sprintf("%v", i), "nick", "host", "source", "user", []string{"Args1", "args2"}}
+	InitRing(15)
+	for i := 1; i <= 25; i++ {
+		addEvent(Event{"code", "raw" + fmt.Sprintf("%v", i), "nick", "host", "source", "user", []string{"Args1", "args2"}})
 	}
 
-	for res := range out {
-		fmt.Println(res)
+	history := getHistory()
+	for i := range history {
+		fmt.Printf("%v: %v\n", i, history[i])
 	}
-
-	close(in)
 }
