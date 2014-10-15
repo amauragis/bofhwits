@@ -1,3 +1,8 @@
+// TODO:
+// Ring buffer of last 50 or so messages
+// commands to log last X lines, or potentially last range, but indexing would be weird
+// instead of trying to parse copy and paste strings, fuzzy match them with already indexed lines
+
 package bofhwitsbot
 
 import (
@@ -171,7 +176,7 @@ func (bot *BofhwitsBot) faketweet(msg string) {
 
 }
 
-func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
+func (bot *BofhwitsBot) parseCommand(e *irc.Event) {
 
 	msg := strings.TrimSpace(e.Message())
 
@@ -198,28 +203,10 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 			// command definitions.  For readability, they are broken into
 			// helper functions
 			switch cmd {
-			// case "!tweet":
-			// 	if params != "" {
-			// 		bot.tweet(e.Nick + ": " + params)
-			// 	}
-			// case "!tweettest":
-			// 	if params != "" {
-			// 		bot.faketweet(e.Nick + ": " + params)
-			// 	}
+
 			case "!buttes":
 				bot.con.Privmsg(bot.Configs.Channel, "Donges.")
 				bot.Log.Println("Donged " + e.Nick)
-
-			// case "!dbtest":
-			// 	bot.postSql("ryzic", "test")
-
-			// case "!unparse":
-			// 	if params != "" {
-			// 		user, msg := separateUsername(params)
-			// 		bot.con.Privmsg(bot.Configs.Channel, "Nick: "+user)
-			// 		bot.con.Privmsg(bot.Configs.Channel, "Msg: "+msg)
-
-			// 	}
 
 			case "!info":
 				bot.Log.Println("Info requested by " + e.Nick)
@@ -276,7 +263,7 @@ func (bot *BofhwitsBot) RunBot() {
 	// })
 
 	// get a message callback
-	bot.con.AddCallback("PRIVMSG", bot.handleMessageEvent)
+	bot.con.AddCallback("PRIVMSG", bot.parseCommand)
 
 	// Processing loop to handle all events
 	bot.con.Loop()
