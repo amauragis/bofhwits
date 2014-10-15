@@ -6,8 +6,8 @@
 package bofhwitsbot
 
 import (
-	// "fmt"
 	"database/sql"
+	"fmt"
 	"github.com/ChimeraCoder/anaconda"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/thoj/go-ircevent"
@@ -197,7 +197,7 @@ func (bot *BofhwitsBot) parseCommand(e *irc.Event) {
 	}
 
 	if len(cmd) > 1 {
-		// if the first letter is !, it's a real command
+		// if the first letter is !, it could be a real command
 		if cmd[0] == '!' {
 
 			// command definitions.  For readability, they are broken into
@@ -226,6 +226,16 @@ func (bot *BofhwitsBot) parseCommand(e *irc.Event) {
 			case "!bofhwitsdie":
 				log.Fatal("Killed by " + e.Nick)
 
+			case "!loghist":
+				history := getHistory()
+				for i := range history {
+					fmt.Printf("%v: %v\n", i, history[i])
+				}
+
+			case "!search":
+				history := getHistory()
+				searchHistory(history, params)
+
 			default:
 				// no match, pretend nothing happened
 			}
@@ -250,6 +260,7 @@ func (bot *BofhwitsBot) RunBot() {
 
 	bot.Log.Println("Connected to " + bot.Configs.Address)
 
+	InitRing(50)
 	// bot.dbInit()
 
 	// Join our specified channel when we connect
@@ -264,6 +275,7 @@ func (bot *BofhwitsBot) RunBot() {
 
 	// get a message callback
 	bot.con.AddCallback("PRIVMSG", bot.parseCommand)
+	bot.con.AddCallback("PRIVMSG", addEvent)
 
 	// Processing loop to handle all events
 	bot.con.Loop()

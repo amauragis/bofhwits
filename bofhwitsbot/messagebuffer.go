@@ -1,20 +1,10 @@
-package main
+package bofhwitsbot
 
 import (
 	"container/ring"
 	"fmt"
+	"github.com/thoj/go-ircevent"
 )
-
-// A struct to represent an event.
-type Event struct {
-	Code      string
-	Raw       string
-	Nick      string //<nick>
-	Host      string //<nick>!<usr>@<host>
-	Source    string //<host>
-	User      string //<usr>
-	Arguments []string
-}
 
 var eventRing *ring.Ring
 
@@ -22,32 +12,46 @@ func InitRing(size int) {
 	eventRing = ring.New(size)
 }
 
-func addEvent(newEvent Event) {
+func addEvent(newEvent *irc.Event) {
 	// move backward in the ring so we're at the oldest entry
 	eventRing = eventRing.Prev()
-	eventRing.Value = newEvent
+	eventRing.Value = *newEvent
 }
 
-func getHistory() []Event {
-	var history []Event
-	history = []Event{}
+func getHistory() []irc.Event {
+	var history []irc.Event
+	history = []irc.Event{}
 	eventRing.Do(func(x interface{}) {
 		if x != nil {
-			history = append(history, x.(Event))
+			history = append(history, x.(irc.Event))
 		}
 	})
 
 	return history
 }
 
-func main() {
-	InitRing(15)
-	for i := 1; i <= 25; i++ {
-		addEvent(Event{"code", "raw" + fmt.Sprintf("%v", i), "nick", "host", "source", "user", []string{"Args1", "args2"}})
+func searchHistory(history []irc.Event, searchStr string) (matchIndicies []int) {
+
+	costs := LevenshteinCost{1, 2, 2} // set delete, insert, and substitution costs
+	for index := range history {
+		dist := Levenshtein(searchStr, "<"+history[index].Nick+"> "+history[index].Message(), &costs)
+		if dist < 6 {
+			matchIndicies = append(matchIndicies, index)
+		}
+		fmt.Printf("%v: %v (%v) | %v\n", index, searchStr, "<"+history[index].Nick+"> "+history[index].Message(), dist)
 	}
 
-	history := getHistory()
-	for i := range history {
-		fmt.Printf("%v: %v\n", i, history[i])
-	}
+	return matchIndicies
 }
+
+// func main() {
+// 	InitRing(15)
+// 	for i := 1; i <= 25; i++ {
+// 		addEvent(Event{"code", "raw" + fmt.Sprintf("%v", i), "nick", "host", "source", "user", []string{"Args1", "args2"}})
+// 	}
+
+// 	history := getHistory()
+// 	for i := range history {
+// 		fmt.Printf("%v: %v\n", i, history[i])
+// 	}
+// }
