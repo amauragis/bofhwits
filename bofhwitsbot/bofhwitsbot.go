@@ -172,9 +172,9 @@ func (bot *BofhwitsBot) faketweet(msg string) {
 
 }
 
-func testSubmissionValidity(s string) {
+func testSubmissionValidity(s string) bool {
 	delims := []rune{'>', ':', ','}
-	var exists bool = false
+	exists := false
 	for _, elem := range delims {
 		if strings.ContainsRune(s, elem) {
 			exists = true
@@ -246,9 +246,10 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 					user, msg := separateUsername(params)
 					bot.postSql(user, sanitize.HTML(msg), requestor)
 					bot.tweet(params + " BOFH'd by " + requestor)
-					bot.con.Privmsg(bot.Configs.Channel, "Okay, "+e.Nick+", I posted your shitpost.")
+					bot.con.Privmsg(bot.Configs.Channel, "Okay "+e.Nick+", I posted your shitpost.")
 				} else {
-					bot.con.Privmsg(bot.Configs.Channel, "Hey "+e.Nick+", stop trying to break the bot.")
+					bot.con.Privmsg(bot.Configs.Channel, "Hey "+e.Nick+", stop trying to break the bot (or delimit usernames better).")
+					bot.Log.Printf("Delimit Failure:\n\tMsg: %v\n\tReq'd: %v\n", e.Message(), e.Nick)
 				}
 			case "!bofhwitsdie":
 				log.Fatal("Killed by " + e.Nick)
