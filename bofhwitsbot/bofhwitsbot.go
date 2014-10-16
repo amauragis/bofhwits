@@ -4,6 +4,7 @@ import (
 	// "fmt"
 	"database/sql"
 	"github.com/ChimeraCoder/anaconda"
+	"github.com/amauragis/sanitize"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/thoj/go-ircevent"
 	"gopkg.in/yaml.v1"
@@ -232,7 +233,7 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 					bot.Log.Println("Msg " + params)
 					requestor := e.Nick
 					user, msg := separateUsername(params)
-					bot.postSql(user, msg, requestor)
+					bot.postSql(user, sanitize.HTML(msg), requestor)
 					bot.tweet(params + " BOFH'd by " + requestor)
 					bot.con.Privmsg(bot.Configs.Channel, "Okay, "+e.Nick+", I posted your shitpost.")
 				}
