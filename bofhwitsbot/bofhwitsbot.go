@@ -172,6 +172,17 @@ func (bot *BofhwitsBot) faketweet(msg string) {
 
 }
 
+func testSubmissionValidity(s string) {
+	delims := []rune{'>', ':', ','}
+	var exists bool = false
+	for _, elem := range delims {
+		if strings.ContainsRune(s, elem) {
+			exists = true
+		}
+	}
+	return exists
+}
+
 func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 
 	msg := strings.TrimSpace(e.Message())
@@ -228,7 +239,7 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 			case "!bofh":
 				if params == "" {
 					bot.con.Privmsg(bot.Configs.Channel, "Usage: !bofh <message>")
-				} else {
+				} else if testSubmissionValidity(params) {
 					bot.Log.Println("BOFH requested by " + e.Nick)
 					bot.Log.Println("Msg " + params)
 					requestor := e.Nick
@@ -236,6 +247,8 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 					bot.postSql(user, sanitize.HTML(msg), requestor)
 					bot.tweet(params + " BOFH'd by " + requestor)
 					bot.con.Privmsg(bot.Configs.Channel, "Okay, "+e.Nick+", I posted your shitpost.")
+				} else {
+					bot.con.Privmsg(bot.Configs.Channel, "Hey "+e.Nick+", stop trying to break the bot.")
 				}
 			case "!bofhwitsdie":
 				log.Fatal("Killed by " + e.Nick)
