@@ -3,11 +3,13 @@ package bofhwitsbot
 import (
 	// "fmt"
 	"database/sql"
+	"errors"
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/amauragis/sanitize"
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/thoj/go-ircevent"
-	"gopkg.in/yaml.v1"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"os"
@@ -25,12 +27,17 @@ type BofhwitsBot struct {
 		Username string
 		Nick     string
 		Channel  string
-		Twitter  struct {
+
+		UseTwitter bool
+		DbType     string
+
+		Twitter struct {
 			AppApi        string
 			AppSecret     string
 			AccountApi    string
 			AccountSecret string
 		}
+
 		Mysql struct {
 			Host string
 			DB   string
@@ -38,12 +45,19 @@ type BofhwitsBot struct {
 			Pass string
 		}
 	}
+
 	ConfigFilePath string
 	Log            *log.Logger
+
+	//TODO: add database here
 }
 
 // populate a config struct from a yaml file.
 func (bot *BofhwitsBot) LoadConfig() error {
+
+	if bot.Log == nil {
+		bot.Log = log.New(os.Stdout, "BOFH: ", log.Ldate|log.Ltime)
+	}
 
 	source, err := ioutil.ReadFile(bot.ConfigFilePath)
 	if err != nil {
@@ -58,7 +72,25 @@ func (bot *BofhwitsBot) LoadConfig() error {
 		return err
 	}
 
+	// DEBUG: remove me
+	bot.Log.Printf("here is the configs:\n%+v\n", bot.Configs)
+
 	return nil
+
+}
+
+func (bot *BofhwitsBot) Setup() error {
+	// setup database things based on different configs
+	switch bot.Configs.DbType {
+	case "mysql":
+		// idk
+	case "sqlite":
+
+	case "none":
+		// TODO: disable database interaction
+	default:
+		return errors.New("Bofh Setup: Invalid database type")
+	}
 
 }
 
@@ -104,7 +136,9 @@ func separateUsername(s string) (user string, msg string) {
 	return
 }
 
+// TODO: split into sqlite/mysql/none itit functions
 func (bot *BofhwitsBot) dbInit() {
+	// TODO: make this actually work!
 	sqlcon, oerr := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@tcp("+bot.Configs.Mysql.Host+":3306)/"+bot.Configs.Mysql.DB)
 	if oerr != nil {
 		bot.Log.Printf("DB Failure: %v\n", oerr)
