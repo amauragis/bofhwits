@@ -4,24 +4,28 @@ import (
 	// "fmt"
 	"database/sql"
 	"errors"
+	"io/ioutil"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/amauragis/sanitize"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/thoj/go-ircevent"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"log"
-	"os"
-	"strconv"
-	"strings"
 )
 
 // holds connection pointer, config file path, and contents of config
-// populated via yaml
 type BofhwitsBot struct {
 	con *irc.Connection
 
+	dbOpen func(*BofhwitsBot) (*sql.DB, error)
+
+	// configuration and logger
+	// This struct is populated by YAML
 	Configs struct {
 		Address  string
 		Username string
@@ -32,9 +36,9 @@ type BofhwitsBot struct {
 		DbType     string
 
 		Twitter struct {
-			AppApi        string
+			AppAPI        string
 			AppSecret     string
-			AccountApi    string
+			AccountAPI    string
 			AccountSecret string
 		}
 
@@ -44,12 +48,14 @@ type BofhwitsBot struct {
 			User string
 			Pass string
 		}
+
+		Sqlite struct {
+			File string
+		}
 	}
 
 	ConfigFilePath string
 	Log            *log.Logger
-
-	//TODO: add database here
 }
 
 // populate a config struct from a yaml file.
@@ -92,6 +98,7 @@ func (bot *BofhwitsBot) Setup() error {
 		return errors.New("Bofh Setup: Invalid database type")
 	}
 
+	return nil
 }
 
 // format the string (probably a tweet request) for a single line
@@ -136,23 +143,6 @@ func separateUsername(s string) (user string, msg string) {
 	return
 }
 
-// TODO: split into sqlite/mysql/none itit functions
-func (bot *BofhwitsBot) dbInit() {
-	// TODO: make this actually work!
-	sqlcon, oerr := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@tcp("+bot.Configs.Mysql.Host+":3306)/"+bot.Configs.Mysql.DB)
-	if oerr != nil {
-		bot.Log.Printf("DB Failure: %v\n", oerr)
-	}
-	defer sqlcon.Close()
-
-	_, execErr :=
-		sqlcon.Exec("CREATE TABLE IF NOT EXISTS bofhwits_posts ( post_id int PRIMARY KEY AUTO_INCREMENT, user VARCHAR(50), post VARCHAR(1000), requestor VARCHAR(50), ts TIMESTAMP);")
-
-	if execErr != nil {
-		bot.Log.Printf("Failed to init database: %v\n", execErr)
-	}
-}
-
 func (bot *BofhwitsBot) postSql(user string, msg string, requestor string) {
 	sqlcon, oerr := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@tcp("+bot.Configs.Mysql.Host+":3306)/"+bot.Configs.Mysql.DB)
 	if oerr != nil {
@@ -174,9 +164,9 @@ func (bot *BofhwitsBot) postSql(user string, msg string, requestor string) {
 
 func (bot *BofhwitsBot) tweet(msg string) {
 
-	anaconda.SetConsumerKey(bot.Configs.Twitter.AppApi)
+	anaconda.SetConsumerKey(bot.Configs.Twitter.AppAPI)
 	anaconda.SetConsumerSecret(bot.Configs.Twitter.AppSecret)
-	api := anaconda.NewTwitterApi(bot.Configs.Twitter.AccountApi, bot.Configs.Twitter.AccountSecret)
+	api := anaconda.NewTwitterApi(bot.Configs.Twitter.AccountAPI, bot.Configs.Twitter.AccountSecret)
 	_, err := api.PostTweet(msg, nil)
 	if err != nil {
 		bot.con.Privmsg(bot.Configs.Channel, "Could not tweet for some reason...")
@@ -191,9 +181,9 @@ func (bot *BofhwitsBot) tweet(msg string) {
 
 func (bot *BofhwitsBot) faketweet(msg string) {
 
-	anaconda.SetConsumerKey(bot.Configs.Twitter.AppApi)
+	anaconda.SetConsumerKey(bot.Configs.Twitter.AppAPI)
 	anaconda.SetConsumerSecret(bot.Configs.Twitter.AppSecret)
-	api := anaconda.NewTwitterApi(bot.Configs.Twitter.AccountApi, bot.Configs.Twitter.AccountSecret)
+	api := anaconda.NewTwitterApi(bot.Configs.Twitter.AccountAPI, bot.Configs.Twitter.AccountSecret)
 	_, err := api.VerifyCredentials()
 
 	if err != nil {
