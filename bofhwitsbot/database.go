@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 
+	// database driver tomfoolery
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -16,8 +17,8 @@ func sqliteOpen(bot *BofhwitsBot) (*sql.DB, error) {
 }
 
 func mysqlOpen(bot *BofhwitsBot) (*sql.DB, error) {
-
-	return nil, nil
+	db, err := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@tcp("+bot.Configs.Mysql.Host+":3306)/"+bot.Configs.Mysql.DB)
+	return db, err
 }
 
 func (bot *BofhwitsBot) sqliteInit() error {
@@ -29,30 +30,75 @@ func (bot *BofhwitsBot) sqliteInit() error {
 	// TODO: Validate we have a good sqlite file?
 
 	bot.dbOpen = sqliteOpen
-	dbCon, oerr := sqliteOpen(bot)
+
+	dbCon, err := bot.dbOpen(bot)
+	if err != nil {
+		bot.Log.Printf("err: %q\n", err)
+		return err
+	}
+
+	defer dbCon.Close()
 
 	sqlStatement := `
-	CREATE TABLE IF NOT EXISTS bofhwits_posts (post_id INTEGER PRIMARY KEY, user TEXT, post TEXT, requestor TEXT)
+	CREATE TABLE IF NOT EXISTS bofhwits_posts (post_id INTEGER PRIMARY KEY, user TEXT, post TEXT, requestor TEXT, ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL);
 	`
+	_, err = dbCon.Exec(sqlStatement)
+	if err != nil {
+		bot.Log.Printf("%q: %s\n", err, sqlStatement)
+		return err
+	}
+
+	bot.Log.Printf("sqlite inited successfully")
 
 	return nil
 }
 
-// TODO: split into sqlite/mysql/none itit functions
 func (bot *BofhwitsBot) mysqlInit() error {
-	// TODO: make this actually work!
-	sqlcon, oerr := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@tcp("+bot.Configs.Mysql.Host+":3306)/"+bot.Configs.Mysql.DB)
-	if oerr != nil {
-		bot.Log.Printf("DB Failure: %v\n", oerr)
+
+	if bot.Configs.Mysql.User == "" ||
+		bot.Configs.Mysql.Pass == "" ||
+		bot.Configs.Mysql.Host == "" ||
+		bot.Configs.Mysql.DB == "" {
+
+		return errors.New("Invalid sqlite parameters!")
 	}
-	defer sqlcon.Close()
+	bot.dbOpen = mysqlOpen
 
-	_, execErr :=
-		sqlcon.Exec("CREATE TABLE IF NOT EXISTS bofhwits_posts ( post_id int PRIMARY KEY AUTO_INCREMENT, user VARCHAR(50), post VARCHAR(1000), requestor VARCHAR(50), ts TIMESTAMP);")
+	dbCon, err := bot.dbOpen(bot)
+	if err != nil {
+		bot.Log.Printf("DB Failure: %v\n", err)
+	}
+	defer dbCon.Close()
 
-	if execErr != nil {
-		bot.Log.Printf("Failed to init database: %v\n", execErr)
+	sqlStatement := `
+	CREATE TABLE IF NOT EXISTS bofhwits_butts (post_id INTEGER PRIMARY KEY AUTO_INCREMENT, user VARCHAR(50), post VARCHAR(1000), requestor VARCHAR(50), ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL ON UPDATE CURRENT_TIMESTAMP);
+	`
+
+	_, err = dbCon.Exec(sqlStatement)
+	if err != nil {
+		bot.Log.Printf("%q: %s\n", err, sqlStatement)
+		return err
 	}
 
 	return nil
+}
+
+func (bot *BofhwitsBot) postSQL(user string, msg string, requestor string) {
+	// sqlcon, oerr := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@tcp("+bot.Configs.Mysql.Host+":3306)/"+bot.Configs.Mysql.DB)
+	sqlcon, err := bot.dbOpen(bot)
+	if err != nil {
+		bot.con.Privmsg(bot.Configs.Channel, "Could not connect db for some reason...")
+		bot.Log.Printf("DB Failure: %v\n", err)
+	}
+	defer sqlcon.Close()
+
+	bot.Log.Printf("DB: INSERT INTO bofhwits_posts (user, post, requestor) VALUES (%s, %s, %s)", user, msg, requestor)
+
+	stmt, err := sqlcon.Prepare("INSERT INTO bofhwits_posts (user, post, requestor) VALUES (?, ?, ?)")
+	stmt.Exec(user, msg, requestor)
+
+	if err != nil {
+		bot.con.Privmsg(bot.Configs.Channel, "Could not db for some reason...")
+		bot.Log.Printf("DB Failure: %v\n", err)
+	}
 }
