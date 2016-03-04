@@ -1,4 +1,4 @@
-bofhwits
+bofhwits  [![Build Status](https://travis-ci.org/amauragis/bofhwits.svg?branch=master)](https://travis-ci.org/amauragis/bofhwits)
 ========
 
 BOFHwits: A Bad Bot
