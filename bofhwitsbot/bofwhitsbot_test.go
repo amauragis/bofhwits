@@ -9,18 +9,19 @@ import (
 
 func TestMain(m *testing.M) {
 	// Initialize so we can actually run tests
-	botSetup()
+	bot := BofhwitsBot{}
+	botSetup(&bot)
 	retVal := m.Run()
-	botTeardown()
+	botTeardown(&bot)
 	os.Exit(retVal)
 
 }
 
-func botSetup() {
-	// bot := BofhwitsBot{ConfigFilePath: "../config/bofhwits.yaml"}
+func botSetup(bot *BofhwitsBot) {
+	bot.ConfigFilePath = "../config/bofhwits.test.yaml"
 }
 
-func botTeardown() {
+func botTeardown(bot *BofhwitsBot) {
 
 }
 

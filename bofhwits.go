@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 
 	"github.com/amauragis/bofhwits/bofhwitsbot"
 )
@@ -10,14 +11,31 @@ import (
 // TODO: handle daemonizing
 // TODO: handle log path passed in
 
-// setup -c flag to pass a configuration file to the bot.  I suppose if you want multiple bots, you can use multiple configuration files
-var configFile = flag.String("c", "config/bofhwits.yaml", "The path to the configuration file to use (default config/bofhwits.yaml)")
-
 func main() {
+
+	// setup -c flag to pass a configuration file to the bot.
+	// I suppose if you want multiple bots, you can use multiple configuration files
+	configFile := flag.String("c", "config/bofhwits.yaml",
+		"The path to the configuration file to use (default config/bofhwits.yaml)")
+	logFile := flag.String("l", "",
+		"The path to the log file to use.")
 
 	flag.Parse()
 
-	bot := bofhwitsbot.BofhwitsBot{ConfigFilePath: *configFile}
+	var logger = (*log.Logger)(nil)
+	if *logFile == "" {
+		logger = log.New(os.Stdout, "BOFH: ", log.Ldate|log.Ltime)
+	} else {
+		file, err := os.OpenFile(*logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logger = log.New(file, "BOFH: ", log.Ldate|log.Ltime)
+		logger.Println("-----")
+		logger.Println("Log opened")
+	}
+
+	bot := bofhwitsbot.BofhwitsBot{ConfigFilePath: *configFile, Log: logger}
 	err := bot.LoadConfig()
 	if err != nil {
 		log.Fatal(err)

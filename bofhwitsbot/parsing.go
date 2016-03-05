@@ -9,7 +9,8 @@ import (
 
 // format the string (probably a tweet request) for a single line
 func formatTextOneLine(s string) string {
-	return strings.Replace(s, "\n", " | ", -1)
+	formatStr := strings.TrimSpace(s)
+	return strings.Replace(formatStr, "\n", " | ", -1)
 }
 
 // format the string (log request for site) preserving line endings
