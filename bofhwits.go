@@ -8,17 +8,14 @@ import (
 	"github.com/amauragis/bofhwits/bofhwitsbot"
 )
 
-// TODO: handle daemonizing
-// TODO: handle log path passed in
-
 func main() {
 
 	// setup -c flag to pass a configuration file to the bot.
 	// I suppose if you want multiple bots, you can use multiple configuration files
 	configFile := flag.String("c", "config/bofhwits.yaml",
-		"The path to the configuration file to use (default config/bofhwits.yaml)")
+		"The path to the configuration file to use")
 	logFile := flag.String("l", "",
-		"The path to the log file to use.")
+		"The path to the log file to use. If not provided, uses stdout")
 
 	flag.Parse()
 

@@ -17,7 +17,6 @@ func (bot *BofhwitsBot) tweet(msg string) {
 		bot.Log.Printf("Tweet Failure: %v\n", err)
 	} else {
 
-		// bot.con.Privmsg(bot.Configs.Channel, "OK! Tweeted: "+msg)
 		bot.Log.Println("Tweet Success: " + msg)
 	}
 
