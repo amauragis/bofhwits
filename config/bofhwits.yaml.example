@@ -4,14 +4,22 @@ username: bofhwits
 nick: bofhwits
 channel: "#dumbchannel"
 
+usetwitter: false
+
 twitter:
     appapi: stuff
     appsecret: things
     accountapi: thingamajigs
     accountsecret: doodads
 
+dbtype: sqlite
+
 mysql:
-	host: junk.com
-	db: lol
-	user: buttes
-	pass: donges
+    host: junk.com
+    db: lol
+    user: buttes
+    pass: donges
+
+sqlite:
+    file: "./quotes.db"
+
