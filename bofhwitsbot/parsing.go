@@ -30,7 +30,7 @@ func separateUsername(s string) (user string, msg string) {
 
 	} else {
 		// handle single ended delimiters
-		delims := []rune{'>', ':', ','}
+		delims := []rune{'>', ':'}
 		var matchRune rune
 		for _, elem := range delims {
 
@@ -51,7 +51,7 @@ func separateUsername(s string) (user string, msg string) {
 }
 
 func testSubmissionValidity(s string) bool {
-	delims := []rune{'>', ':', ','}
+	delims := []rune{'>', ':'}
 	exists := false
 	for _, elem := range delims {
 		if strings.ContainsRune(s, elem) {
