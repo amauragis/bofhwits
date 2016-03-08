@@ -11,7 +11,6 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/amauragis/sanitize"
 	"github.com/thoj/go-ircevent"
 )
 
@@ -75,9 +74,6 @@ func (bot *BofhwitsBot) LoadConfig() error {
 		return err
 	}
 
-	// DEBUG: remove me
-	bot.Log.Printf("here is the configs:\n%+v\n", bot.Configs)
-
 	return nil
 }
 
@@ -97,6 +93,43 @@ func (bot *BofhwitsBot) Setup() error {
 	}
 
 	return nil
+}
+
+func (bot *BofhwitsBot) cmdInfo(e *irc.Event, params string) {
+	bot.Log.Println("Info requested by " + e.Nick)
+	bot.con.Privmsg(bot.Configs.Channel,
+		"bofhwits created by ryzic and comradephate "+
+			"// feed: https://bofh.wtf "+
+			"//twitter: https://twitter.com/bofhwits "+
+			"// use !bofhwitsdie to kill")
+}
+
+func (bot *BofhwitsBot) cmdButtes(e *irc.Event, params string) {
+	bot.con.Privmsg(bot.Configs.Channel, "Donges.")
+	bot.Log.Println("Donged " + e.Nick)
+}
+
+func (bot *BofhwitsBot) cmdBofh(e *irc.Event, params string) {
+	if params == "" {
+		bot.con.Privmsg(bot.Configs.Channel, "Usage: !bofh <message>")
+	} else if testSubmissionValidity(params) {
+		bot.Log.Println("BOFH requested by " + e.Nick)
+		bot.Log.Println("Msg " + params)
+		requestor := e.Nick
+		user, msg := separateUsername(params)
+		bot.postSQL(user, msg, requestor)
+		if bot.Configs.UseTwitter {
+			bot.tweet(params)
+		}
+		bot.con.Privmsg(bot.Configs.Channel, "Okay "+e.Nick+", I posted your shitpost.")
+	} else {
+		bot.con.Privmsg(bot.Configs.Channel, "Hey "+e.Nick+", stop trying to break the bot (or delimit usernames better).")
+		bot.Log.Printf("Delimit Failure:\n\tMsg: %v\n\tReq'd: %v\n", e.Message(), e.Nick)
+	}
+}
+
+func (bot *BofhwitsBot) cmdBofhwitsdie(e *irc.Event, params string) {
+	log.Fatal("Killed by " + e.Nick)
 }
 
 func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
@@ -126,50 +159,15 @@ func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
 			// command definitions.  For readability, they are broken into
 			// helper functions
 			switch cmd {
-			// case "!tweet":
-			// 	if params != "" {
-			// 		bot.tweet(e.Nick + ": " + params)
-			// 	}
-			// case "!tweettest":
-			// 	if params != "" {
-			// 		bot.faketweet(e.Nick + ": " + params)
-			// 	}
+
 			case "!buttes":
-				bot.con.Privmsg(bot.Configs.Channel, "Donges.")
-				bot.Log.Println("Donged " + e.Nick)
-
-			// case "!dbtest":
-			// 	bot.postSql("ryzic", "test")
-
-			// case "!unparse":
-			// 	if params != "" {
-			// 		user, msg := separateUsername(params)
-			// 		bot.con.Privmsg(bot.Configs.Channel, "Nick: "+user)
-			// 		bot.con.Privmsg(bot.Configs.Channel, "Msg: "+msg)
-
-			// 	}
-
+				bot.cmdButtes(e, params)
 			case "!info":
-				bot.Log.Println("Info requested by " + e.Nick)
-				bot.con.Privmsg(bot.Configs.Channel, "bofhwits created by ryzic and comradephate // feed: https://bofh.wtf // twitter: https://twitter.com/bofhwits // use !bofhwitsdie to kill")
+				bot.cmdInfo(e, params)
 			case "!bofh":
-				if params == "" {
-					bot.con.Privmsg(bot.Configs.Channel, "Usage: !bofh <message>")
-				} else if testSubmissionValidity(params) {
-					bot.Log.Println("BOFH requested by " + e.Nick)
-					bot.Log.Println("Msg " + params)
-					requestor := e.Nick
-					user, msg := separateUsername(params)
-					bot.postSQL(user, sanitize.HTML(msg), requestor)
-					// bot.tweet(params + " BOFH'd by " + requestor)
-					bot.con.Privmsg(bot.Configs.Channel, "Okay "+e.Nick+", I posted your shitpost.")
-				} else {
-					bot.con.Privmsg(bot.Configs.Channel, "Hey "+e.Nick+", stop trying to break the bot (or delimit usernames better).")
-					bot.Log.Printf("Delimit Failure:\n\tMsg: %v\n\tReq'd: %v\n", e.Message(), e.Nick)
-				}
+				bot.cmdBofh(e, params)
 			case "!bofhwitsdie":
-				log.Fatal("Killed by " + e.Nick)
-
+				bot.cmdBofhwitsdie(e, params)
 			default:
 				// no match, pretend nothing happened
 			}
@@ -200,6 +198,7 @@ func (bot *BofhwitsBot) RunBot() {
 	})
 
 	// // If we get kicked, assume it was for a good reason
+	// TODO: Need to make sure we got kicked... not anyone got kicked
 	// bot.con.AddCallback("KICK", func(e *irc.Event) {
 	// 	bot.Log.Fatal("Kicked!")
 	// })

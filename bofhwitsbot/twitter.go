@@ -1,19 +1,21 @@
 package bofhwitsbot
 
 import (
-	// "fmt"
+	"strings"
 
 	"github.com/ChimeraCoder/anaconda"
 )
 
 func (bot *BofhwitsBot) tweet(msg string) {
+	// remove all @s from the string
+	msg = strings.Replace(msg, "@", "", -1)
 
 	anaconda.SetConsumerKey(bot.Configs.Twitter.AppAPI)
 	anaconda.SetConsumerSecret(bot.Configs.Twitter.AppSecret)
 	api := anaconda.NewTwitterApi(bot.Configs.Twitter.AccountAPI, bot.Configs.Twitter.AccountSecret)
 	_, err := api.PostTweet(msg, nil)
 	if err != nil {
-		bot.con.Privmsg(bot.Configs.Channel, "Could not tweet for some reason...")
+		// bot.con.Privmsg(bot.Configs.Channel, "Could not tweet for some reason...")
 		bot.Log.Printf("Tweet Failure: %v\n", err)
 	} else {
 

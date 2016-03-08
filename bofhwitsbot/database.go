@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/amauragis/sanitize"
+
 	// database driver tomfoolery
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
@@ -84,7 +86,10 @@ func (bot *BofhwitsBot) mysqlInit() error {
 }
 
 func (bot *BofhwitsBot) postSQL(user string, msg string, requestor string) {
-	// sqlcon, oerr := sql.Open("mysql", bot.Configs.Mysql.User+":"+bot.Configs.Mysql.Pass+"@tcp("+bot.Configs.Mysql.Host+":3306)/"+bot.Configs.Mysql.DB)
+	msg = sanitize.HTML(msg)
+	user = sanitize.HTML(user)
+	requestor = sanitize.HTML(requestor)
+
 	sqlcon, err := bot.dbOpen(bot)
 	if err != nil {
 		bot.con.Privmsg(bot.Configs.Channel, "Could not connect db for some reason...")

@@ -24,7 +24,7 @@ I haven't actually tested this, but here is my best guess!
 Configuration
 -------------
 Everything is configured in `./config/bofhwits.yaml`, an [example](config/bofhwits.yaml.example) is
-provided in the config directory.  The bofhwits executable searchs `.config/bofhwits.yaml` specifically
+provided in the config directory.  The bofhwits executable searchs `./config/bofhwits.yaml` specifically
 but depending on how you installed it or where you put the config file, you can pass in whatever path
 you want.
 
@@ -50,4 +50,3 @@ work right with godep because it has some C code in the "code" subdirectory.  Yo
 this in manually if godep doesn't do it for you.
 
 Actual dependency list: [here](Godeps/Godeps.json)
-
