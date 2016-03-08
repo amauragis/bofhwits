@@ -82,13 +82,16 @@ func (bot *BofhwitsBot) Setup() error {
 	// setup database things based on different configs
 	switch bot.Configs.DbType {
 	case "mysql":
+		bot.Log.Printf("Selecting mysql database...")
 		bot.mysqlInit()
 	case "sqlite":
+		bot.Log.Printf("Selecting sqlite database...")
 		bot.sqliteInit()
 	case "none":
 		// TODO: disable database interaction
+		bot.Log.Fatal("A database is required!")
 	default:
-		bot.Log.Fatal("unsupported database")
+		bot.Log.Printf("unsupported database")
 		return errors.New("Bofh Setup: Invalid database type")
 	}
 
@@ -129,7 +132,7 @@ func (bot *BofhwitsBot) cmdBofh(e *irc.Event, params string) {
 }
 
 func (bot *BofhwitsBot) cmdBofhwitsdie(e *irc.Event, params string) {
-	log.Fatal("Killed by " + e.Nick)
+	bot.Log.Fatal("Killed by " + e.Nick)
 }
 
 func (bot *BofhwitsBot) handleMessageEvent(e *irc.Event) {
@@ -184,6 +187,7 @@ func (bot *BofhwitsBot) RunBot() {
 	}
 	// connect to IRC
 	bot.con = irc.IRC(bot.Configs.Nick, bot.Configs.Username)
+	bot.con.Log = bot.Log
 	err := bot.con.Connect(bot.Configs.Address)
 	if err != nil {
 		bot.Log.Println("Failed to connect to " + bot.Configs.Address)

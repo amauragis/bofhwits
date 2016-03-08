@@ -18,7 +18,7 @@ func main() {
 		"The path to the log file to use. If not provided, uses stdout")
 
 	flag.Parse()
-
+	log.Println("Flags parsed")
 	var logger = (*log.Logger)(nil)
 	if *logFile == "" {
 		logger = log.New(os.Stdout, "BOFH: ", log.Ldate|log.Ltime)
@@ -27,18 +27,27 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer file.Close()
+		// this is the bofhwits logger
 		logger = log.New(file, "BOFH: ", log.Ldate|log.Ltime)
+		// this is the standard logger that library functions may use
+		log.SetOutput(file)
 		logger.Println("-----")
 		logger.Println("Log opened")
 	}
 
 	bot := bofhwitsbot.BofhwitsBot{ConfigFilePath: *configFile, Log: logger}
 	err := bot.LoadConfig()
+	log.Println("Configs loaded")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	err = bot.Setup()
+	log.Println("Setup done")
+	if err != nil {
+		log.Fatal(err)
+	}
 	bot.RunBot()
 
 }

@@ -72,6 +72,11 @@ func (bot *BofhwitsBot) mysqlInit() error {
 	}
 	defer dbCon.Close()
 
+	err = dbCon.Ping()
+	if err != nil {
+		bot.Log.Printf("DB Ping error: %v\n", err)
+	}
+
 	sqlStatement := `
 	CREATE TABLE IF NOT EXISTS bofhwits_butts (post_id INTEGER PRIMARY KEY AUTO_INCREMENT, user VARCHAR(50), post VARCHAR(1000), requestor VARCHAR(50), ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL ON UPDATE CURRENT_TIMESTAMP);
 	`
