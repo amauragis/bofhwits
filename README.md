@@ -18,7 +18,7 @@ I haven't actually tested this, but here is my best guess!
   - If you haven't installed go before, do read that page a bit.  $GOPATH and $GOROOT and such are kind of
     non intuitive.
 1. Install godep: `go get github.com/tools/godep`
-1. Install bofhwits with specified dependencies: `godep get github.com/amauragis/bofhwits'
+1. Install bofhwits with specified dependencies: `godep get github.com/amauragis/bofhwits`
 
 
 Configuration
