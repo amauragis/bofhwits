@@ -1,0 +1,25 @@
+---
+address: "whatever.tld:6667"
+username: "bofhwits"
+nick: "bofhwits"
+channel: "#dumbchannel"
+
+usetwitter: false
+
+twitter:
+    appapi: "stuff"
+    appsecret: "things"
+    accountapi: "thingamajigs"
+    accountsecret: "doodads"
+
+# sqlite or mysql
+dbtype: sqlite
+
+mysql:
+    host: "junk.com"
+    db: "lol"
+    user: "buttes"
+    pass: "donges"
+
+sqlite:
+    file: "./quotes.db"

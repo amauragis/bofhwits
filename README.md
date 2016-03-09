@@ -23,7 +23,7 @@ I haven't actually tested this, but here is my best guess!
 
 Configuration
 -------------
-Everything is configured in `./config/bofhwits.yaml`, an [example](config/bofhwits.yaml.example) is
+Everything is configured in `./config/bofhwits.yaml`, an [example](config/bofhwits.example.yaml) is
 provided in the config directory.  The bofhwits executable searchs `./config/bofhwits.yaml` specifically
 but depending on how you installed it or where you put the config file, you can pass in whatever path
 you want.
